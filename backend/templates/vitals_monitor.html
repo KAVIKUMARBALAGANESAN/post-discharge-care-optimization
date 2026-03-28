@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vitals Monitor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f7; }
+        .header {
+            background: linear-gradient(135deg,#1a3c5e,#2c7be5);
+            color: white; padding: 16px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav a {
+            color: white; text-decoration: none;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; margin-left: 10px;
+        }
+        .container { padding: 25px; max-width: 1100px; margin: auto; }
+        .card {
+            background: white; padding: 22px; border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 20px;
+        }
+        .card h3 {
+            font-size: 16px; color: #1a3c5e; margin-bottom: 14px;
+            border-bottom: 2px solid #eef2f7; padding-bottom: 10px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #2c7be5; color: white; padding: 10px 12px; text-align: left; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; }
+        .badge {
+            display: inline-block; padding: 4px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: bold; color: white;
+        }
+        .abnormal { background: #e74c3c; }
+        .normal   { background: #2ecc71; }
+        tr.abnormal-row { background: #fff5f5; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>📊 Vitals Monitor</h2>
+    <div class="nav">
+        <a href="/doctor-dashboard">🏥 Dashboard</a>
+        <a href="/logout">🚪 Logout</a>
+    </div>
+</div>
+<div class="container">
+    <div class="card">
+        <h3>📊 All Patient Vitals (Abnormal First)</h3>
+        {% if vitals %}
+        <table>
+            <tr>
+                <th>#</th><th>Patient ID</th><th>Patient Name</th>
+                <th>Blood Pressure</th><th>Heart Rate</th>
+                <th>Temperature</th><th>Blood Sugar</th>
+                <th>Recorded At</th><th>Status</th>
+            </tr>
+            {% for v in vitals %}
+            <tr class="{{ 'abnormal-row' if v[8]==1 else '' }}">
+                <td>{{ loop.index }}</td>
+                <td>{{ v[1] }}</td>
+                <td>{{ v[2] }}</td>
+                <td>{{ v[3] }}</td>
+                <td>{{ v[4] }} bpm</td>
+                <td>{{ v[5] }}°C</td>
+                <td>{{ v[6] }} mg/dL</td>
+                <td>{{ v[7] }}</td>
+                <td>
+                    {% if v[8] == 1 %}
+                        <span class="badge abnormal">⚠️ Abnormal</span>
+                    {% else %}
+                        <span class="badge normal">✅ Normal</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p style="color:#6c757d;font-size:13px;">No vitals recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

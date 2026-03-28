@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Discharge History</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f9; padding: 20px; }
+        h2 { margin-bottom: 10px; }
+        .nav a { margin-right: 15px; font-weight: bold; text-decoration: none; color: #2c7be5; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background: #2c7be5; color: white; }
+        .status-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-weight: bold; font-size: 12px; color: white;
+        }
+        .status-approved { background: #2ecc71; }
+        .status-rejected { background: #e74c3c; }
+        .status-pending  { background: #f39c12; }
+        .risk-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 20px;
+            font-weight: bold; font-size: 12px; color: white;
+        }
+        .risk-high   { background: #e74c3c; }
+        .risk-medium { background: #f39c12; }
+        .risk-low    { background: #2ecc71; }
+        .risk-none   { background: #95a5a6; }
+        .back-btn {
+            display: inline-block; margin-bottom: 15px; padding: 7px 16px;
+            background: #2c7be5; color: white; border-radius: 5px;
+            text-decoration: none; font-size: 13px;
+        }
+        .back-btn:hover { background: #1a5fba; }
+        .remarks-cell { font-style: italic; color: #555; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="/predict">🧠 Predict Risk</a>
+    <a href="/prediction-history">📊 Prediction History</a>
+    <a href="/doctor-dashboard">🏥 Dashboard</a>
+    <a href="/symptom-alerts">🚨 Symptom Alerts</a>
+    <a href="/logout">🚪 Logout</a>
+</div>
+
+<h2>📋 Discharge History — Full Audit Trail</h2>
+<a class="back-btn" href="/doctor-dashboard">← Back to Dashboard</a>
+
+{% if history %}
+<table>
+    <tr>
+        <th>#</th>
+        <th>Patient ID</th>
+        <th>Patient Name</th>
+        <th>Risk Level</th>
+        <th>Requested At</th>
+        <th>Status</th>
+        <th>Reviewed By</th>
+        <th>Reviewed At</th>
+        <th>Remarks</th>
+    </tr>
+
+    {% for h in history %}
+    <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ h[1] }}</td>   <!-- patient_id  -->
+        <td>{{ h[2] }}</td>   <!-- name        -->
+        <td>
+            {% if h[8] == 'High' %}
+                <span class="risk-badge risk-high">🔴 High</span>
+            {% elif h[8] == 'Medium' %}
+                <span class="risk-badge risk-medium">🟡 Medium</span>
+            {% elif h[8] == 'Low' %}
+                <span class="risk-badge risk-low">🟢 Low</span>
+            {% else %}
+                <span class="risk-badge risk-none">⚪ N/A</span>
+            {% endif %}
+        </td>
+        <td>{{ h[3] }}</td>   <!-- requested_at -->
+        <td>
+            {% if h[4] == 'APPROVED' %}
+                <span class="status-badge status-approved">✅ Approved</span>
+            {% elif h[4] == 'REJECTED' %}
+                <span class="status-badge status-rejected">❌ Rejected</span>
+            {% else %}
+                <span class="status-badge status-pending">⏳ Pending</span>
+            {% endif %}
+        </td>
+        <td>{{ h[5] if h[5] else '—' }}</td>   <!-- reviewed_by  -->
+        <td>{{ h[6] if h[6] else '—' }}</td>   <!-- reviewed_at  -->
+        <td class="remarks-cell">
+            {{ h[7] if h[7] else '—' }}         <!-- remarks      -->
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No discharge records found.</p>
+{% endif %}
+
+</body>
+</html>

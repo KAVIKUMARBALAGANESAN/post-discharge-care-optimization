@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Doctor Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f7; }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg,#1a3c5e,#2c7be5);
+            color: white; padding: 16px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+        }
+        .header h2 { font-size: 20px; }
+        .nav { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .nav a {
+            color: white; text-decoration: none;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 13px; border-radius: 20px; font-size: 12px;
+            transition: background 0.2s; white-space: nowrap;
+        }
+        .nav a:hover { background: rgba(255,255,255,0.3); }
+        .nav a.active { background: rgba(255,255,255,0.35); font-weight: bold; }
+        .badge {
+            background: #e74c3c; color: white; border-radius: 50%;
+            padding: 2px 6px; font-size: 10px; margin-left: 3px;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container { padding: 25px; max-width: 1150px; margin: auto; }
+
+        /* ===== FLASH ===== */
+        .flash {
+            padding: 11px 16px; border-radius: 8px;
+            margin-bottom: 16px; font-size: 13px; font-weight: 500;
+        }
+        .flash.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .flash.error   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .flash.warning { background:#fff3cd; color:#856404; border:1px solid #ffeeba; }
+
+        /* ===== EXPORT BAR ===== */
+        .export-bar {
+            display: flex; gap: 10px; align-items: center;
+            background: white; padding: 14px 20px; border-radius: 12px;
+            margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            flex-wrap: wrap;
+        }
+        .export-bar span {
+            font-size: 13px; font-weight: 600; color: #1a3c5e; margin-right: 6px;
+        }
+        .export-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 8px;
+            font-size: 12px; font-weight: bold; text-decoration: none;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .export-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .export-btn.pdf   { background: #e74c3c; color: white; }
+        .export-btn.excel { background: #27ae60; color: white; }
+        .export-btn.analytics {
+            background: linear-gradient(135deg,#1a3c5e,#2c7be5); color: white;
+        }
+
+        /* ===== ANALYTICS GRID ===== */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px; margin-bottom: 22px;
+        }
+        .stat-card {
+            background: white; border-radius: 10px; padding: 16px;
+            text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.11); }
+        .stat-num   { font-size: 28px; font-weight: bold; color: #1a3c5e; }
+        .stat-label { font-size: 11px; color: #6c757d; margin-top: 4px; }
+        .stat-icon  { font-size: 20px; margin-bottom: 6px; }
+        .stat-card.red    .stat-num { color: #e74c3c; }
+        .stat-card.orange .stat-num { color: #f39c12; }
+        .stat-card.green  .stat-num { color: #2ecc71; }
+        .stat-card.blue   .stat-num { color: #2c7be5; }
+        .stat-card.purple .stat-num { color: #8e44ad; }
+
+        /* ===== CHARTS GRID ===== */
+        .charts-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 20px; margin-bottom: 22px;
+        }
+        @media (max-width: 750px) { .charts-grid { grid-template-columns: 1fr; } }
+        .chart-container { position: relative; height: 240px; }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: white; padding: 22px; border-radius: 12px;
+            margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            transition: box-shadow 0.2s;
+        }
+        .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.11); }
+        .card h3 {
+            font-size: 16px; margin-bottom: 14px; color: #1a3c5e;
+            border-bottom: 2px solid #eef2f7; padding-bottom: 10px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ===== GRID ===== */
+        .grid-2 {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 20px; margin-bottom: 20px;
+        }
+        .grid-3 {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px; margin-bottom: 20px;
+        }
+        @media (max-width: 900px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 750px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+        /* ===== TABLE ===== */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            background: linear-gradient(135deg,#2c7be5,#1a5fba);
+            color: white; padding: 10px 12px; text-align: left;
+        }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
+        tr:hover td { background: #fafbff; }
+
+        /* ===== RISK BADGES ===== */
+        .risk-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 20px;
+            font-weight: bold; font-size: 11px; color: white;
+        }
+        .risk-high   { background: #e74c3c; }
+        .risk-medium { background: #f39c12; }
+        .risk-low    { background: #2ecc71; }
+        .risk-none   { background: #95a5a6; }
+
+        /* ===== STATUS BADGES ===== */
+        .status-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: bold; color: white;
+        }
+        .status-sos      { background: #e74c3c; animation: pulse 1.5s infinite; }
+        .status-resolved { background: #2ecc71; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-block; padding: 7px 14px; border: none;
+            border-radius: 7px; color: white; font-size: 12px;
+            cursor: pointer; text-decoration: none; font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .approve   { background: #2ecc71; }
+        .reject    { background: #e74c3c; }
+        .blue-btn  { background: #2c7be5; }
+        .purple-btn{ background: #8e44ad; }
+        .orange-btn{ background: #f39c12; }
+
+        /* ===== FORMS ===== */
+        .remarks-box {
+            width: 100%; padding: 7px 9px; border: 1px solid #ccc;
+            border-radius: 6px; font-size: 12px; resize: vertical;
+            min-height: 50px; margin-bottom: 6px; font-family: inherit;
+        }
+        .action-form { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+        .action-buttons { display: flex; gap: 6px; }
+
+        .form-row {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-bottom: 12px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            padding: 8px 10px; border: 1px solid #dee2e6;
+            border-radius: 7px; font-size: 13px; outline: none;
+            font-family: inherit; transition: border-color 0.2s;
+        }
+        .form-group select:focus,
+        .form-group input:focus,
+        .form-group textarea:focus { border-color: #2c7be5; }
+
+        .submit-btn {
+            background: linear-gradient(135deg,#2c7be5,#1a5fba);
+            color: white; border: none; padding: 9px 20px;
+            border-radius: 7px; cursor: pointer; font-size: 13px;
+            font-weight: bold; margin-top: 4px; transition: opacity 0.2s;
+        }
+        .submit-btn:hover { opacity: 0.88; }
+        .submit-btn.green { background: linear-gradient(135deg,#2ecc71,#27ae60); }
+        .submit-btn.red   { background: linear-gradient(135deg,#e74c3c,#c0392b); }
+
+        /* ===== MESSAGE BOX ===== */
+        .msg-form textarea {
+            width: 100%; padding: 9px 11px; border: 1px solid #dee2e6;
+            border-radius: 7px; font-size: 13px; resize: vertical;
+            min-height: 65px; font-family: inherit; outline: none;
+        }
+        .msg-form textarea:focus { border-color: #2c7be5; }
+
+        /* ===== SOS ALERT CARD ===== */
+        .sos-banner {
+            background: linear-gradient(135deg,#e74c3c,#c0392b);
+            color: white; padding: 16px 22px; border-radius: 12px;
+            margin-bottom: 20px; display: flex;
+            justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 15px rgba(231,76,60,0.35);
+            animation: pulseBanner 2s infinite;
+        }
+        @keyframes pulseBanner {
+            0%,100% { box-shadow: 0 4px 15px rgba(231,76,60,0.35); }
+            50%      { box-shadow: 0 4px 28px rgba(231,76,60,0.65); }
+        }
+        .sos-banner h3 { font-size: 16px; margin: 0; color: white; border: none; }
+        .sos-banner p  { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+        .sos-banner a  {
+            background: white; color: #e74c3c; padding: 8px 18px;
+            border-radius: 8px; text-decoration: none; font-weight: bold;
+            font-size: 13px; white-space: nowrap;
+        }
+
+        /* ===== VITALS ROW ===== */
+        .abnormal-row td { background: #fff5f5 !important; }
+
+        /* ===== PATIENT REPORT LINK ===== */
+        .report-link {
+            display: inline-block; padding: 4px 10px;
+            background: #8e44ad; color: white; border-radius: 6px;
+            text-decoration: none; font-size: 11px; font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        .report-link:hover { opacity: 0.85; }
+
+        /* ===== PDF EXPORT LINK (per patient) ===== */
+        .pdf-link {
+            display: inline-block; padding: 4px 10px;
+            background: #e74c3c; color: white; border-radius: 6px;
+            text-decoration: none; font-size: 11px; font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        .pdf-link:hover { opacity: 0.85; }
+
+        /* ===== SECTION DIVIDER ===== */
+        .section-label {
+            font-size: 11px; font-weight: 700; color: #6c757d;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin: 24px 0 12px 0;
+        }
+
+        /* ===== FEEDBACK STARS ===== */
+        .star { color: #f39c12; font-size: 13px; }
+        .avg-rating {
+            font-size: 32px; font-weight: bold; color: #f39c12; text-align: center;
+        }
+        .avg-sub { font-size: 12px; color: #6c757d; text-align: center; margin-top: 4px; }
+
+        /* ===== SCROLLABLE TABLE ===== */
+        .table-wrap { overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+    <h2>👨‍⚕️ Doctor Dashboard</h2>
+    <div class="nav">
+        <a href="/predict">🧠 Predict</a>
+        <a href="/prediction-history">📊 Predictions</a>
+        <a href="/discharge-history">📋 Discharge History</a>
+        <a href="/symptom-alerts">
+            🚨 Symptoms
+            {% if flagged_count > 0 %}
+            <span class="badge">{{ flagged_count }}</span>
+            {% endif %}
+        </a>
+        <a href="/sos-alerts">
+            🆘 SOS
+            {% if sos_count > 0 %}
+            <span class="badge">{{ sos_count }}</span>
+            {% endif %}
+        </a>
+        <a href="/vitals-monitor">📊 Vitals</a>
+        <a href="/audit-log">🔐 Audit Log</a>
+        <a href="/view-feedback">⭐ Feedback</a>
+        <!-- ✅ NEW: Analytics Dashboard link -->
+        <a href="/analytics-dashboard" class="active">📈 Analytics</a>
+        <a href="/logout">🚪 Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- ===== FLASH MESSAGES ===== -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- ✅ SOS ACTIVE BANNER -->
+    {% if sos_count > 0 %}
+    <div class="sos-banner">
+        <div>
+            <h3>🆘 {{ sos_count }} Active Emergency SOS Alert{{ 's' if sos_count > 1 else '' }}</h3>
+            <p>Patient(s) have triggered an emergency SOS. Immediate attention required.</p>
+        </div>
+        <a href="/sos-alerts">View Alerts →</a>
+    </div>
+    {% endif %}
+
+    <!-- ✅ EXPORT & ANALYTICS BAR -->
+    <div class="export-bar">
+        <span>📊 Reports & Analytics:</span>
+        <a href="/analytics-dashboard" class="export-btn analytics">
+            📈 Full Analytics Dashboard
+        </a>
+        <a href="/export-report-pdf" class="export-btn pdf">
+            📄 Export PDF Report
+        </a>
+        <a href="/export-report-excel" class="export-btn excel">
+            📊 Export Excel Report
+        </a>
+    </div>
+
+    <!-- ===== ANALYTICS STAT CARDS ===== -->
+    <p class="section-label">📊 System Overview</p>
+    <div class="analytics-grid">
+        <div class="stat-card blue">
+            <div class="stat-icon">👥</div>
+            <div class="stat-num">{{ analytics.total_patients }}</div>
+            <div class="stat-label">Total Patients</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon">🧠</div>
+            <div class="stat-num">{{ analytics.total_predictions }}</div>
+            <div class="stat-label">Predictions Made</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-num">{{ analytics.high_risk }}</div>
+            <div class="stat-label">High Risk</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">🟡</div>
+            <div class="stat-num">{{ analytics.medium_risk }}</div>
+            <div class="stat-label">Medium Risk</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-num">{{ analytics.low_risk }}</div>
+            <div class="stat-label">Low Risk</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-num">{{ analytics.approved }}</div>
+            <div class="stat-label">Approved Discharges</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">❌</div>
+            <div class="stat-num">{{ analytics.rejected }}</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-num">{{ analytics.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">🚨</div>
+            <div class="stat-num">{{ analytics.flagged_symptoms }}</div>
+            <div class="stat-label">Flagged Symptoms</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">🆘</div>
+            <div class="stat-num">{{ analytics.total_sos if analytics.total_sos is defined else sos_count }}</div>
+            <div class="stat-label">SOS Alerts</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">💬</div>
+            <div class="stat-num">{{ analytics.total_messages if analytics.total_messages is defined else '—' }}</div>
+            <div class="stat-label">Messages Sent</div>
+        </div>
+    </div>
+
+    <!-- ✅ ANALYTICS CHARTS -->
+    <p class="section-label">📈 Visual Analytics</p>
+    <div class="charts-grid">
+        <div class="card">
+            <h3>🎯 Risk Distribution</h3>
+            <div class="chart-container">
+                <canvas id="riskChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h3>🚪 Discharge Status Overview</h3>
+            <div class="chart-container">
+                <canvas id="dischargeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SCHEDULE + PRESCRIBE GRID ===== -->
+    <p class="section-label">🩺 Patient Management</p>
+    <div class="grid-2">
+
+        <!-- SCHEDULE APPOINTMENT -->
+        <div class="card">
+            <h3>📅 Schedule Follow-up Appointment</h3>
+            <form method="POST" action="/schedule-appointment">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Patient</label>
+                        <select name="patient_id" required>
+                            <option value="">— Select Patient —</option>
+                            {% for p in all_patients %}
+                            <option value="{{ p[0] }}">{{ p[1] }} ({{ p[0] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="appointment_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time</label>
+                        <input type="time" name="appointment_time" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Reason</label>
+                        <input type="text" name="reason"
+                               placeholder="Follow-up, check-up...">
+                    </div>
+                </div>
+                <button class="submit-btn" type="submit">📅 Schedule Appointment</button>
+            </form>
+        </div>
+
+        <!-- PRESCRIBE MEDICATION -->
+        <div class="card">
+            <h3>💊 Prescribe Medication</h3>
+            <form method="POST" action="/prescribe-medication">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Patient</label>
+                        <select name="patient_id" required>
+                            <option value="">— Select Patient —</option>
+                            {% for p in all_patients %}
+                            <option value="{{ p[0] }}">{{ p[1] }} ({{ p[0] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Medicine Name</label>
+                        <input type="text" name="medicine_name"
+                               placeholder="e.g. Metformin" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Dosage</label>
+                        <input type="text" name="dosage"
+                               placeholder="e.g. 500mg">
+                    </div>
+                    <div class="form-group">
+                        <label>Frequency</label>
+                        <select name="frequency">
+                            <option>Once daily</option>
+                            <option>Twice daily</option>
+                            <option>Three times daily</option>
+                            <option>As needed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration</label>
+                        <input type="text" name="duration"
+                               placeholder="e.g. 7 days, 1 month">
+                    </div>
+                    <div class="form-group">
+                        <label>Instructions</label>
+                        <input type="text" name="instructions"
+                               placeholder="After meals, with water...">
+                    </div>
+                </div>
+                <button class="submit-btn" type="submit">💊 Prescribe Medication</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ✅ SEND MESSAGE TO PATIENT -->
+    <div class="card">
+        <h3>💬 Send Message to Patient</h3>
+        <form class="msg-form" method="POST" action="/send-message">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Select Patient</label>
+                    <select name="patient_id" required>
+                        <option value="">— Select Patient —</option>
+                        {% for p in all_patients %}
+                        <option value="{{ p[0] }}">{{ p[1] }} ({{ p[0] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea name="message"
+                              placeholder="Type your message to the patient here..."
+                              required></textarea>
+                </div>
+            </div>
+            <button class="submit-btn" type="submit">💬 Send Message</button>
+        </form>
+    </div>
+
+    <!-- ✅ ALL PATIENTS TABLE WITH REPORT + PDF EXPORT -->
+    <div class="card">
+        <h3>👥 All Registered Patients</h3>
+        {% if all_patients %}
+        <div class="table-wrap">
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Patient ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Full Report</th>
+                <th>Export PDF</th>
+            </tr>
+            {% for p in all_patients %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ p[0] }}</td>
+                <td>{{ p[1] }}</td>
+                <td>{{ p[2] }}</td>
+                <td>
+                    <a class="report-link" href="/patient-report/{{ p[0] }}">
+                        📋 View Report
+                    </a>
+                </td>
+                <!-- ✅ Per-patient PDF export -->
+                <td>
+                    <a class="pdf-link" href="/export-patient-pdf/{{ p[0] }}">
+                        📄 Download PDF
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+        {% else %}
+            <p style="color:#6c757d;font-size:13px;">No patients registered yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- ===== PENDING DISCHARGE REQUESTS ===== -->
+    <p class="section-label">🚪 Discharge Management</p>
+    <div class="card">
+        <h3>📋 Pending Discharge Requests</h3>
+        {% if discharges %}
+        <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Request ID</th>
+                <th>Patient ID</th>
+                <th>Patient Name</th>
+                <th>Requested At</th>
+                <th>Risk Level</th>
+                <th>Report</th>
+                <th>PDF</th>
+                <th>Action & Remarks</th>
+            </tr>
+            {% for d in discharges %}
+            <tr>
+                <td>{{ d[0] }}</td>
+                <td>{{ d[1] }}</td>
+                <td>{{ d[2] }}</td>
+                <td>{{ d[3] }}</td>
+                <td>
+                    {% if d[4] == 'High' %}
+                        <span class="risk-badge risk-high">🔴 High</span>
+                    {% elif d[4] == 'Medium' %}
+                        <span class="risk-badge risk-medium">🟡 Medium</span>
+                    {% elif d[4] == 'Low' %}
+                        <span class="risk-badge risk-low">🟢 Low</span>
+                    {% else %}
+                        <span class="risk-badge risk-none">⚪ N/A</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="report-link" href="/patient-report/{{ d[1] }}">📋 Report</a>
+                </td>
+                <td>
+                    <a class="pdf-link" href="/export-patient-pdf/{{ d[1] }}">📄 PDF</a>
+                </td>
+                <td>
+                    <form class="action-form" method="POST"
+                          action="/discharge-action/{{ d[0] }}/approved">
+                        <textarea class="remarks-box" name="remarks"
+                                  placeholder="Remarks (optional)..."></textarea>
+                        <div class="action-buttons">
+                            <button type="submit" class="btn approve">✅ Approve</button>
+                            <button type="submit" class="btn reject"
+                                    formaction="/discharge-action/{{ d[0] }}/rejected">
+                                ❌ Reject
+                            </button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+        {% else %}
+            <p style="color:#6c757d;font-size:13px;">No pending discharge requests.</p>
+        {% endif %}
+    </div>
+
+    <!-- ✅ RECENT VITALS SNAPSHOT (Abnormal First) -->
+    {% if recent_vitals %}
+    <p class="section-label">📊 Recent Abnormal Vitals</p>
+    <div class="card">
+        <h3>⚠️ Recent Vitals — Abnormal Readings First</h3>
+        <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Patient ID</th><th>Name</th><th>Blood Pressure</th>
+                <th>Heart Rate</th><th>Temperature</th><th>Blood Sugar</th>
+                <th>Recorded At</th><th>Status</th><th>Report</th>
+            </tr>
+            {% for v in recent_vitals %}
+            <tr class="{{ 'abnormal-row' if v[8]==1 else '' }}">
+                <td>{{ v[1] }}</td>
+                <td>{{ v[2] if v|length > 2 else '—' }}</td>
+                <td>{{ v[3] if v|length > 3 else v[1] }}</td>
+                <td>{{ v[4] if v|length > 4 else v[2] }} bpm</td>
+                <td>{{ v[5] if v|length > 5 else v[3] }}°C</td>
+                <td>{{ v[6] if v|length > 6 else v[4] }} mg/dL</td>
+                <td>{{ v[7] if v|length > 7 else v[5] }}</td>
+                <td>
+                    {% set flag = v[8] if v|length > 8 else v[6] %}
+                    {% if flag == 1 %}
+                        <span class="risk-badge risk-high">⚠️ Abnormal</span>
+                    {% else %}
+                        <span class="risk-badge risk-low">✅ Normal</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="report-link" href="/patient-report/{{ v[1] }}">📋 Report</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+        <div style="margin-top:12px;">
+            <a href="/vitals-monitor" class="btn blue-btn">📊 View All Vitals</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ✅ RECENT SOS ALERTS SNAPSHOT -->
+    {% if recent_sos %}
+    <p class="section-label">🆘 Recent SOS Alerts</p>
+    <div class="card">
+        <h3>🆘 Recent Emergency SOS Alerts</h3>
+        <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Patient ID</th><th>Name</th><th>Message</th>
+                <th>Triggered At</th><th>Status</th><th>Action</th>
+            </tr>
+            {% for a in recent_sos %}
+            <tr>
+                <td>{{ a[1] }}</td>
+                <td>{{ a[2] if a|length > 2 else '—' }}</td>
+                <td>{{ a[3] if a|length > 3 else a[2] }}</td>
+                <td>{{ a[4] if a|length > 4 else a[3] }}</td>
+                <td>
+                    {% set resolved = a[5] if a|length > 5 else a[4] %}
+                    {% if resolved == 0 %}
+                        <span class="status-badge status-sos">🆘 Active</span>
+                    {% else %}
+                        <span class="status-badge status-resolved">✅ Resolved</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if (a[5] if a|length > 5 else a[4]) == 0 %}
+                    <a class="btn approve" href="/resolve-sos/{{ a[0] }}">✅ Resolve</a>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+        <div style="margin-top:12px;">
+            <a href="/sos-alerts" class="btn reject">🆘 View All SOS Alerts</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ✅ RECENT FEEDBACK SNAPSHOT -->
+    {% if recent_feedback %}
+    <p class="section-label">⭐ Patient Feedback</p>
+    <div class="card">
+        <h3>⭐ Recent Patient Feedback</h3>
+        <div style="margin-bottom:16px;">
+            <div class="avg-rating">{{ avg_rating }} ⭐</div>
+            <div class="avg-sub">
+                Average rating from {{ recent_feedback|length }} patient(s)
+            </div>
+        </div>
+        <div class="table-wrap">
+        <table>
+            <tr>
+                <th>#</th><th>Patient ID</th><th>Rating</th>
+                <th>Comments</th><th>Date</th>
+            </tr>
+            {% for f in recent_feedback %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ f[1] }}</td>
+                <td>
+                    {% for i in range(f[2]|int) %}
+                        <span class="star">⭐</span>
+                    {% endfor %}
+                </td>
+                <td style="font-size:12px;color:#555;">{{ f[3] or '—' }}</td>
+                <td style="font-size:12px;">{{ f[4] if f|length > 4 else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+        <div style="margin-top:12px;">
+            <a href="/view-feedback" class="btn orange-btn">⭐ View All Feedback</a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ===== CHART JS ===== -->
+<script>
+    const riskCtx = document.getElementById('riskChart').getContext('2d');
+    new Chart(riskCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ risk_labels | tojson }},
+            datasets: [{
+                data: {{ risk_values | tojson }},
+                backgroundColor: ['#e74c3c','#f39c12','#2ecc71'],
+                borderWidth: 2, borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 12 } } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} patients` } }
+            }
+        }
+    });
+
+    const disCtx = document.getElementById('dischargeChart').getContext('2d');
+    new Chart(disCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ dis_labels | tojson }},
+            datasets: [{
+                label: 'Discharge Requests',
+                data: {{ dis_values | tojson }},
+                backgroundColor: ['#2ecc71','#e74c3c','#f39c12'],
+                borderRadius: 6, borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.raw} requests` } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f0f2f5' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

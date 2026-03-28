@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="fw-bold mb-0" style="color:#1a73e8;">
+        <i class="bi bi-bar-chart-line-fill me-2"></i>Analytics Dashboard
+      </h2>
+      <small class="text-muted">Comprehensive patient data insights</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="/export-report-pdf" class="btn btn-danger btn-sm">
+        <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export PDF
+      </a>
+      <a href="/export-report-excel" class="btn btn-success btn-sm">
+        <i class="bi bi-file-earmark-excel-fill me-1"></i>Export Excel
+      </a>
+      <a href="/doctor-dashboard" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    {% set kpis = [
+      ("Total Patients",     total_patients,                  "bi-people-fill",         "#1a73e8", "#e8f0fe"),
+      ("Total Predictions",  total_predictions,               "bi-cpu-fill",            "#8e24aa", "#f3e5f5"),
+      ("High Risk",          risk_counts.get("High", 0),      "bi-exclamation-octagon-fill", "#e53935","#ffebee"),
+      ("Medium Risk",        risk_counts.get("Medium", 0),    "bi-exclamation-triangle-fill","#f57c00","#fff3e0"),
+      ("Low Risk",           risk_counts.get("Low", 0),       "bi-check-circle-fill",    "#43a047","#e8f5e9"),
+      ("Avg Rating",         avg_rating ~ " / 5",             "bi-star-fill",            "#fdd835","#fffde7"),
+    ] %}
+    {% for label, value, icon, color, bg in kpis %}
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm h-100"
+           style="border-left: 4px solid {{ color }} !important; border-radius:12px;">
+        <div class="card-body d-flex align-items-center gap-3 p-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center"
+               style="width:44px;height:44px;background:{{ bg }};flex-shrink:0;">
+            <i class="bi {{ icon }}" style="font-size:1.2rem;color:{{ color }};"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-5 lh-1" style="color:{{ color }};">{{ value }}</div>
+            <div class="text-muted" style="font-size:.75rem;">{{ label }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="row g-4 mb-4">
+
+    <!-- Risk Distribution Doughnut -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-pie-chart-fill me-2 text-primary"></i>Risk Distribution
+          </h6>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <canvas id="riskChart" style="max-height:230px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Readmission Probability Trend -->
+    <div class="col-md-8">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-graph-up-arrow me-2 text-danger"></i>Readmission Probability Trend (Last 20)
+          </h6>
+        </div>
+        <div class="card-body">
+          <canvas id="probChart" style="max-height:230px;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="row g-4 mb-4">
+
+    <!-- Vitals Averages -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-heart-pulse-fill me-2 text-danger"></i>Average Vitals
+          </h6>
+        </div>
+        <div class="card-body">
+          <canvas id="vitalsChart" style="max-height:230px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discharge Status Bar -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-hospital-fill me-2 text-success"></i>Discharge Outcomes
+          </h6>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <canvas id="dischargeChart" style="max-height:230px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Symptom Highlights -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-thermometer-half me-2 text-warning"></i>Symptom Highlights
+          </h6>
+        </div>
+        <div class="card-body">
+          <canvas id="symptomChart" style="max-height:230px;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Summary Row -->
+  <div class="row g-4 mb-4">
+    <!-- Vitals Stats -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-activity me-2 text-info"></i>Vitals Summary
+          </h6>
+        </div>
+        <div class="card-body pb-3">
+          {% for label, val, unit, color in [
+            ("Avg Heart Rate",    avg_hr,   "bpm", "#e53935"),
+            ("Avg Temperature",   avg_temp, "°C",  "#f57c00"),
+            ("Avg Blood Sugar",   avg_bs,   "mg/dL","#8e24aa"),
+          ] %}
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="text-muted small">{{ label }}</span>
+            <span class="fw-bold" style="color:{{ color }};">{{ val }} {{ unit }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Stats -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-star-half me-2 text-warning"></i>Patient Feedback
+          </h6>
+        </div>
+        <div class="card-body pb-3">
+          <div class="text-center py-2">
+            <div class="display-5 fw-bold" style="color:#fdd835;">{{ avg_rating }}</div>
+            <div class="text-muted small">Average Rating out of 5.0</div>
+            <div class="mt-2">
+              {% for i in range(5) %}
+                <i class="bi bi-star{% if i < avg_rating|int %}-fill{% endif %}"
+                   style="color:#fdd835;font-size:1.3rem;"></i>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Export -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm" style="border-radius:14px;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="fw-semibold mb-0" style="color:#3c4043;">
+            <i class="bi bi-download me-2 text-success"></i>Export Reports
+          </h6>
+        </div>
+        <div class="card-body d-flex flex-column gap-3 justify-content-center">
+          <a href="/export-report-pdf" class="btn btn-danger w-100">
+            <i class="bi bi-file-earmark-pdf-fill me-2"></i>
+            Download Full PDF Report
+          </a>
+          <a href="/export-report-excel" class="btn btn-success w-100">
+            <i class="bi bi-file-earmark-excel-fill me-2"></i>
+            Download Excel Workbook
+          </a>
+          <small class="text-muted text-center">
+            Reports include predictions, vitals, symptoms & feedback
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  Chart.defaults.font.family = "'Segoe UI', sans-serif";
+  Chart.defaults.plugins.legend.labels.boxWidth = 12;
+
+  // 1. Risk Distribution Doughnut
+  new Chart(document.getElementById('riskChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['High', 'Medium', 'Low'],
+      datasets: [{
+        data: [
+          {{ risk_counts.get("High", 0) }},
+          {{ risk_counts.get("Medium", 0) }},
+          {{ risk_counts.get("Low", 0) }}
+        ],
+        backgroundColor: ['#ea4335','#fbbc04','#34a853'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // 2. Probability Trend Line
+  new Chart(document.getElementById('probChart'), {
+    type: 'line',
+    data: {
+      labels: {{ prob_labels | tojson }},
+      datasets: [{
+        label: 'Readmission Probability (%)',
+        data: {{ prob_values | tojson }},
+        borderColor: '#1a73e8',
+        backgroundColor: 'rgba(26,115,232,0.08)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#1a73e8',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+        x: { ticks: { maxTicksLimit: 8 } }
+      },
+      plugins: { legend: { position: 'top' } }
+    }
+  });
+
+  // 3. Vitals Averages Bar
+  new Chart(document.getElementById('vitalsChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Heart Rate', 'Temperature', 'Blood Sugar'],
+      datasets: [{
+        label: 'Average',
+        data: [{{ avg_hr }}, {{ avg_temp }}, {{ avg_bs }}],
+        backgroundColor: ['#ea4335','#f57c00','#8e24aa'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  // 4. Discharge Outcomes Doughnut
+  new Chart(document.getElementById('dischargeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Approved', 'Rejected', 'Other'],
+      datasets: [{
+        data: [
+          {{ dis_approved }},
+          {{ dis_rejected }},
+          {{ [0, total_discharges - dis_approved - dis_rejected] | max }}
+        ],
+        backgroundColor: ['#34a853','#ea4335','#9e9e9e'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      cutout: '60%',
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // 5. Symptom Highlights Bar
+  new Chart(document.getElementById('symptomChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Fever', 'Abnormal Breathing', 'High Pain (≥7)'],
+      datasets: [{
+        label: 'Patients',
+        data: [{{ fever_yes }}, {{ breathing_abn }}, {{ high_pain }}],
+        backgroundColor: ['#fbbc04','#ea4335','#8e24aa'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+</script>
+{% endblock %}

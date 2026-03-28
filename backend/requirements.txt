@@ -1,0 +1,5 @@
+flask
+werkzeug
+joblib
+pandas
+scikit-learn

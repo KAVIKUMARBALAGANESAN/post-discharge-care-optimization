@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration Successful</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+
+        <div class="logo">✅</div>
+
+        <h2>Registration Completed</h2>
+        <p class="subtitle">Please save your Login ID</p>
+
+        <div class="popup success">
+            <strong>Your Login ID</strong><br><br>
+            <h3>{{ unique_id }}</h3>
+            <br>
+            <small>This ID is required for future login</small>
+        </div>
+
+        <a href="/" class="btn-login" style="text-align:center; display:block; margin-top:20px;">
+            Go to Login
+        </a>
+
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Feedback</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f7; }
+        .header {
+            background: linear-gradient(135deg,#1a3c5e,#2c7be5);
+            color: white; padding: 16px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav a {
+            color: white; text-decoration: none;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; margin-left: 10px;
+        }
+        .container { padding: 25px; max-width: 900px; margin: auto; }
+        .avg-card {
+            background: linear-gradient(135deg,#1a3c5e,#2c7be5);
+            color: white; border-radius: 12px; padding: 22px 28px;
+            margin-bottom: 20px; text-align: center;
+        }
+        .avg-num { font-size: 48px; font-weight: bold; }
+        .avg-label { font-size: 14px; opacity: 0.85; margin-top: 5px; }
+        .card {
+            background: white; padding: 22px; border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .card h3 {
+            font-size: 16px; color: #1a3c5e; margin-bottom: 14px;
+            border-bottom: 2px solid #eef2f7; padding-bottom: 10px;
+        }
+        .feedback-item {
+            padding: 14px; border-radius: 10px;
+            background: #f8f9fa; margin-bottom: 12px;
+            border-left: 4px solid #2c7be5;
+        }
+        .stars { color: #f39c12; font-size: 16px; }
+        .fb-name { font-weight: bold; color: #1a3c5e; font-size: 14px; }
+        .fb-comment { color: #555; font-size: 13px; margin-top: 6px; }
+        .fb-date { font-size: 11px; color: #aaa; margin-top: 5px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>⭐ Patient Feedback</h2>
+    <div class="nav">
+        <a href="/doctor-dashboard">🏥 Dashboard</a>
+        <a href="/logout">🚪 Logout</a>
+    </div>
+</div>
+<div class="container">
+    <div class="avg-card">
+        <div class="avg-num">{{ avg }} ⭐</div>
+        <div class="avg-label">Average Rating from {{ feedbacks|length }} patients</div>
+    </div>
+    <div class="card">
+        <h3>💬 All Patient Feedback</h3>
+        {% if feedbacks %}
+            {% for f in feedbacks %}
+            <div class="feedback-item">
+                <div class="fb-name">{{ f[1] }}</div>
+                <div class="stars">
+                    {% for i in range(f[2]) %}⭐{% endfor %}
+                    ({{ f[2] }}/5)
+                </div>
+                <div class="fb-comment">{{ f[3] or 'No comments provided.' }}</div>
+                <div class="fb-date">{{ f[4] }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:#6c757d;font-size:13px;">No feedback yet.</p>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

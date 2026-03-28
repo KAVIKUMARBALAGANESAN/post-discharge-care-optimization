@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register | Post Discharge Care Optimization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+
+        <div class="logo">🏥</div>
+
+        <h2>Create Account</h2>
+        <p class="subtitle">Doctor / Patient Registration</p>
+
+        <!-- FLASH MESSAGES -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="popup-container">
+              {% for category, message in messages %}
+                <div class="popup {{ category }}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- GENERATED USER ID -->
+        {% if unique_id %}
+        <div class="popup success">
+            ✅ <strong>Registration Successful!</strong><br><br>
+
+            <strong>Your User ID:</strong>
+            <input type="text"
+                   value="{{ unique_id }}"
+                   readonly
+                   style="width:100%;margin-top:8px;padding:10px;border-radius:6px;
+                          border:1px solid #ccc;text-align:center;font-weight:bold;">
+
+            <small style="display:block; margin-top:6px;">
+                📧 This User ID has been sent to your email.<br>
+                Please save it for future login.
+            </small>
+        </div>
+        {% endif %}
+
+        <form method="post" onsubmit="return validatePassword()">
+
+            <!-- USER NAME -->
+            <div class="input-group">
+                <input type="text" name="name" required>
+                <label>Full Name</label>
+            </div>
+
+            <!-- EMAIL -->
+            <div class="input-group">
+                <input type="email" name="email" required>
+                <label>Email Address</label>
+            </div>
+
+            <!-- PASSWORD -->
+            <div class="input-group password-wrapper">
+                <input type="password" name="password" id="registerPassword" required>
+                <label>Password</label>
+                <span class="toggle-eye"
+                      onclick="togglePassword('registerPassword', this)">👁️</span>
+            </div>
+
+            <!-- PASSWORD RULE MESSAGE -->
+            <small id="passwordHelp" style="color:#d63031; display:none; margin-top:-10px;">
+                Password must contain uppercase, lowercase, number, special character
+                and minimum 8 characters.
+            </small>
+
+            <!-- ROLE -->
+            <div class="input-group">
+                <select name="role" required style="width:100%; padding:12px; border-radius:8px;">
+                    <option value="">Select Role</option>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-login">Register</button>
+        </form>
+
+        <p class="register-link">
+            Already have an account?
+            <a href="/">Login here</a>
+        </p>
+
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId, eye) {
+    const input = document.getElementById(inputId);
+    input.type = input.type === "password" ? "text" : "password";
+    eye.textContent = input.type === "password" ? "👁️" : "🙈";
+}
+
+function validatePassword() {
+    const password = document.getElementById("registerPassword").value;
+    const help = document.getElementById("passwordHelp");
+
+    const pattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!pattern.test(password)) {
+        help.style.display = "block";
+        return false;   // ❌ stop form submit
+    }
+
+    help.style.display = "none";
+    return true;        // ✅ allow submit
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction History</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+
+        h2 { margin-bottom: 10px; }
+
+        .nav a {
+            margin-right: 15px;
+            font-weight: bold;
+            text-decoration: none;
+            color: #2c7be5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #2c7be5;
+            color: white;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 13px;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-high   { background: #e74c3c; }
+        .risk-medium { background: #f39c12; }
+        .risk-low    { background: #2ecc71; }
+        .risk-none   { background: #95a5a6; }
+
+        .prob-bar-wrap {
+            background: #e0e0e0;
+            border-radius: 10px;
+            width: 120px;
+            height: 14px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .prob-bar-fill {
+            height: 14px;
+            border-radius: 10px;
+            background: #2c7be5;
+        }
+
+        .prob-text {
+            font-size: 12px;
+            vertical-align: middle;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 15px;
+            padding: 7px 16px;
+            background: #2c7be5;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .back-btn:hover { background: #1a5fba; }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="/predict">🧠 Predict Risk</a>
+    <a href="/doctor-dashboard">🏥 Dashboard</a>
+    <a href="/logout">🚪 Logout</a>
+</div>
+
+<h2>📊 Prediction History — All Patients</h2>
+
+<a class="back-btn" href="/doctor-dashboard">← Back to Dashboard</a>
+
+{% if predictions %}
+<table>
+    <tr>
+        <th>#</th>
+        <th>Patient ID</th>
+        <th>Patient Name</th>
+        <th>Risk Level</th>
+        <th>Probability</th>
+        <th>Predicted At</th>
+    </tr>
+
+    {% for p in predictions %}
+    <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ p[1] }}</td>    <!-- patient_id  -->
+        <td>{{ p[2] }}</td>    <!-- name        -->
+
+        <!-- Risk Level -->
+        <td>
+            {% if p[3] == 'High' %}
+                <span class="risk-badge risk-high">🔴 High</span>
+            {% elif p[3] == 'Medium' %}
+                <span class="risk-badge risk-medium">🟡 Medium</span>
+            {% elif p[3] == 'Low' %}
+                <span class="risk-badge risk-low">🟢 Low</span>
+            {% else %}
+                <span class="risk-badge risk-none">⚪ Unknown</span>
+            {% endif %}
+        </td>
+
+        <!-- Probability with visual bar -->
+        <td>
+            <div class="prob-bar-wrap">
+                <div class="prob-bar-fill" style="width: {{ (p[4] * 100) | round(0) }}%;"></div>
+            </div>
+            <span class="prob-text">{{ (p[4] * 100) | round(2) }}%</span>
+        </td>
+
+        <td>{{ p[5] }}</td>    <!-- created_at -->
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No prediction records found.</p>
+{% endif %}
+
+</body>
+</html>

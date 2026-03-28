@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Care Plans | Doctor Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #2c7be5;
+            font-weight: bold;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .high {
+            border-left: 6px solid #e74c3c;
+        }
+        .medium {
+            border-left: 6px solid #f1c40f;
+        }
+        .low {
+            border-left: 6px solid #2ecc71;
+        }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="/dashboard">⬅ Dashboard</a>
+    <a href="/patients">View Patients</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<h2>📋 Care Plan Guidelines</h2>
+
+<div class="card high">
+    <h3>🔴 High Risk Patients</h3>
+    <p>
+        • Doctor follow-up within 48 hours<br>
+        • Daily vitals monitoring<br>
+        • Medication adherence checks<br>
+        • Emergency alert enabled
+    </p>
+</div>
+
+<div class="card medium">
+    <h3>🟠 Medium Risk Patients</h3>
+    <p>
+        • Weekly monitoring<br>
+        • Medication reminders<br>
+        • Lifestyle guidance<br>
+        • Monthly doctor review
+    </p>
+</div>
+
+<div class="card low">
+    <h3>🟢 Low Risk Patients</h3>
+    <p>
+        • Normal follow-up schedule<br>
+        • Healthy lifestyle advice<br>
+        • Annual checkups
+    </p>
+</div>
+
+</body>
+</html>

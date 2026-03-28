@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Full Report</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f7; }
+        .header {
+            background: linear-gradient(135deg,#1a3c5e,#2c7be5);
+            color: white; padding: 16px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav a {
+            color: white; text-decoration: none;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; margin-left: 10px;
+        }
+        .container { padding: 25px; max-width: 1000px; margin: auto; }
+        .card {
+            background: white; padding: 22px; border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 18px;
+        }
+        .card h3 {
+            font-size: 15px; color: #1a3c5e; margin-bottom: 12px;
+            border-bottom: 2px solid #eef2f7; padding-bottom: 8px;
+        }
+        .info-row {
+            display: flex; justify-content: space-between;
+            padding: 7px 0; border-bottom: 1px solid #f0f2f5; font-size: 13px;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .label { color: #6c757d; }
+        .value { font-weight: 600; color: #1a3c5e; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #2c7be5; color: white; padding: 8px 10px; text-align: left; }
+        td { padding: 8px 10px; border-bottom: 1px solid #f0f2f5; }
+        .risk-high   { color: #e74c3c; font-weight: bold; }
+        .risk-medium { color: #f39c12; font-weight: bold; }
+        .risk-low    { color: #2ecc71; font-weight: bold; }
+        .back-btn {
+            display: inline-block; margin-bottom: 16px; padding: 8px 18px;
+            background: #2c7be5; color: white; border-radius: 8px;
+            text-decoration: none; font-size: 13px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>📋 Patient Full Report</h2>
+    <div class="nav">
+        <a href="/doctor-dashboard">🏥 Dashboard</a>
+        <a href="/logout">🚪 Logout</a>
+    </div>
+</div>
+<div class="container">
+    <a class="back-btn" href="/doctor-dashboard">← Back</a>
+
+    {% if report.info %}
+    <div class="card">
+        <h3>👤 Patient Information</h3>
+        <div class="info-row"><span class="label">Patient ID</span><span class="value">{{ report.info[0] }}</span></div>
+        <div class="info-row"><span class="label">Name</span><span class="value">{{ report.info[1] }}</span></div>
+        <div class="info-row"><span class="label">Email</span><span class="value">{{ report.info[2] }}</span></div>
+        <div class="info-row"><span class="label">Role</span><span class="value">{{ report.info[3] }}</span></div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <h3>🧠 Prediction History</h3>
+        {% if report.predictions %}
+        <table>
+            <tr><th>Risk</th><th>Probability</th><th>Care Plan</th><th>Date</th></tr>
+            {% for p in report.predictions %}
+            <tr>
+                <td class="risk-{{ p[0]|lower }}">{{ p[0] }}</td>
+                <td>{{ "%.1f"|format(p[1]*100) }}%</td>
+                <td style="font-size:11px;">{{ p[2][:80] }}...</td>
+                <td>{{ p[3] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p style="color:#6c757d;font-size:13px;">No predictions.</p>{% endif %}
+    </div>
+
+    <div class="card">
+        <h3>💊 Medications</h3>
+        {% if report.medications %}
+        <table>
+            <tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Date</th></tr>
+            {% for m in report.medications %}
+            <tr>
+                <td>{{ m[0] }}</td><td>{{ m[1] }}</td>
+                <td>{{ m[2] }}</td><td>{{ m[3] }}</td><td>{{ m[4] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p style="color:#6c757d;font-size:13px;">No medications.</p>{% endif %}
+    </div>
+
+    <div class="card">
+        <h3>📅 Appointments</h3>
+        {% if report.appointments %}
+        <table>
+            <tr><th>Date</th><th>Time</th><th>Reason</th><th>Status</th></tr>
+            {% for a in report.appointments %}
+            <tr>
+                <td>{{ a[0] }}</td><td>{{ a[1] }}</td>
+                <td>{{ a[2] }}</td><td>{{ a[3] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p style="color:#6c757d;font-size:13px;">No appointments.</p>{% endif %}
+    </div>
+
+    <div class="card">
+        <h3>📊 Vital Signs</h3>
+        {% if report.vitals %}
+        <table>
+            <tr><th>BP</th><th>Heart Rate</th><th>Temp</th><th>Blood Sugar</th><th>Date</th></tr>
+            {% for v in report.vitals %}
+            <tr>
+                <td>{{ v[0] }}</td><td>{{ v[1] }} bpm</td>
+                <td>{{ v[2] }}°C</td><td>{{ v[3] }} mg/dL</td><td>{{ v[4] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p style="color:#6c757d;font-size:13px;">No vitals recorded.</p>{% endif %}
+    </div>
+
+    <div class="card">
+        <h3>🩺 Symptom Reports</h3>
+        {% if report.symptoms %}
+        <table>
+            <tr><th>Fever</th><th>Pain</th><th>Breathing</th><th>Notes</th><th>Date</th><th>Flag</th></tr>
+            {% for s in report.symptoms %}
+            <tr>
+                <td>{{ s[0] }}</td><td>{{ s[1] }}/10</td>
+                <td>{{ s[2] }}</td><td>{{ s[3] or '—' }}</td>
+                <td>{{ s[4] }}</td>
+                <td>{{ '🚨' if s[5]==1 else '✅' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p style="color:#6c757d;font-size:13px;">No symptoms reported.</p>{% endif %}
+    </div>
+
+    <div class="card">
+        <h3>🚪 Discharge History</h3>
+        {% if report.discharges %}
+        <table>
+            <tr><th>Status</th><th>Requested At</th><th>Reviewed At</th><th>Remarks</th></tr>
+            {% for d in report.discharges %}
+            <tr>
+                <td>{{ d[0] }}</td><td>{{ d[1] }}</td>
+                <td>{{ d[2] or '—' }}</td><td>{{ d[3] or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p style="color:#6c757d;font-size:13px;">No discharge records.</p>{% endif %}
+    </div>
+</div>
+</body>
+</html>

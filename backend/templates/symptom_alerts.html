@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Symptom Alerts</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f9; padding: 20px; }
+        h2 { margin-bottom: 10px; }
+        .nav a { margin-right: 15px; font-weight: bold; text-decoration: none; color: #2c7be5; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background: #2c7be5; color: white; }
+        .back-btn {
+            display: inline-block; margin-bottom: 15px; padding: 7px 16px;
+            background: #2c7be5; color: white; border-radius: 5px;
+            text-decoration: none; font-size: 13px;
+        }
+        .back-btn:hover { background: #1a5fba; }
+        /* Flagged row highlight */
+        .flagged-row { background: #fff5f5; }
+        .flag-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 20px;
+            font-weight: bold; font-size: 12px; color: white;
+        }
+        .flag-yes { background: #e74c3c; }
+        .flag-no  { background: #2ecc71; }
+        .pain-high { color: #e74c3c; font-weight: bold; }
+        .pain-mid  { color: #f39c12; font-weight: bold; }
+        .pain-low  { color: #2ecc71; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="/predict">🧠 Predict Risk</a>
+    <a href="/prediction-history">📊 Prediction History</a>
+    <a href="/discharge-history">📋 Discharge History</a>
+    <a href="/doctor-dashboard">🏥 Dashboard</a>
+    <a href="/logout">🚪 Logout</a>
+</div>
+
+<h2>🚨 Patient Symptom Alerts</h2>
+<a class="back-btn" href="/doctor-dashboard">← Back to Dashboard</a>
+
+{% if symptoms %}
+<table>
+    <tr>
+        <th>#</th>
+        <th>Patient ID</th>
+        <th>Patient Name</th>
+        <th>Fever</th>
+        <th>Pain Level</th>
+        <th>Breathing</th>
+        <th>Notes</th>
+        <th>Submitted At</th>
+        <th>Status</th>
+    </tr>
+
+    {% for s in symptoms %}
+    <tr class="{{ 'flagged-row' if s[8] == 1 else '' }}">
+        <td>{{ loop.index }}</td>
+        <td>{{ s[1] }}</td>   <!-- patient_id  -->
+        <td>{{ s[2] }}</td>   <!-- name        -->
+        <td>{{ s[3] }}</td>   <!-- fever       -->
+        <td>
+            {% set pain = s[4] | int %}
+            <span class="{{ 'pain-high' if pain >= 7 else 'pain-mid' if pain >= 4 else 'pain-low' }}">
+                {{ pain }}/10
+            </span>
+        </td>
+        <td>{{ s[5] }}</td>   <!-- breathing   -->
+        <td>{{ s[6] if s[6] else '—' }}</td>   <!-- notes -->
+        <td>{{ s[7] }}</td>   <!-- submitted_at -->
+        <td>
+            {% if s[8] == 1 %}
+                <span class="flag-badge flag-yes">🚨 Flagged</span>
+            {% else %}
+                <span class="flag-badge flag-no">✅ Normal</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No symptom reports found.</p>
+{% endif %}
+
+</body>
+</html>

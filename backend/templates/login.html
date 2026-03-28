@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | Post Discharge Care Optimization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+
+        <div class="logo">🏥</div>
+
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Post Discharge Care Optimization</p>
+
+        <!-- Popup Message -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="popup-container">
+              {% for category, message in messages %}
+                <div class="popup {{ category }}" id="popup-msg">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" onsubmit="return validateLoginId()">
+
+            <!-- LOGIN ID -->
+            <div class="input-group">
+                <input type="text" name="unique_id" id="loginId" required
+                       onkeyup="detectRole()" autocomplete="username">
+                <label>Login ID (DOC-XXXX / PAT-XXXX)</label>
+                <small id="roleHint" style="font-size:12px;color:#666;"></small>
+            </div>
+
+            <!-- PASSWORD -->
+            <div class="input-group password-wrapper">
+                <input type="password" name="password" id="loginPassword"
+                       required onkeyup="capsCheck(event)"
+                       autocomplete="current-password">
+                <label>Password</label>
+                <span class="toggle-eye"
+                      onclick="togglePassword('loginPassword', this)">👁️</span>
+                <small id="capsWarning"
+                       style="font-size:12px;color:#e74c3c;display:none;">
+                    ⚠ Caps Lock is ON
+                </small>
+            </div>
+
+            <!-- REMEMBER ME -->
+            <div style="margin-bottom:15px;font-size:14px;
+                        display:flex; justify-content:space-between;
+                        align-items:center;">
+                <div>
+                    <input type="checkbox" id="rememberMe" onchange="handleRememberMe()">
+                    <label for="rememberMe">Remember Me</label>
+                </div>
+                <!-- FORGOT PASSWORD LINK -->
+                <a href="/forgot-password"
+                   style="font-size:13px; color:#2c7be5; text-decoration:none;">
+                    Forgot Password?
+                </a>
+            </div>
+
+            <button type="submit" class="btn-login">Login</button>
+        </form>
+
+        <p class="register-link">
+            Don't have an account?
+            <a href="/register">Create one</a>
+        </p>
+
+    </div>
+</div>
+
+<script>
+// =================== REMEMBER ME ===================
+// On page load, check if saved credentials exist in localStorage
+window.onload = function () {
+    const savedId  = localStorage.getItem("remembered_id");
+    const savedPwd = localStorage.getItem("remembered_pwd");
+
+    if (savedId && savedPwd) {
+        document.getElementById("loginId").value       = savedId;
+        document.getElementById("loginPassword").value = savedPwd;
+        document.getElementById("rememberMe").checked  = true;
+        detectRole();  // show role hint for remembered ID
+    }
+};
+
+// Save or clear credentials based on checkbox
+function handleRememberMe() {
+    const checked = document.getElementById("rememberMe").checked;
+    if (!checked) {
+        localStorage.removeItem("remembered_id");
+        localStorage.removeItem("remembered_pwd");
+    }
+}
+
+// On form submit — save credentials if Remember Me is checked
+document.querySelector("form").addEventListener("submit", function () {
+    const checked = document.getElementById("rememberMe").checked;
+    const id      = document.getElementById("loginId").value;
+    const pwd     = document.getElementById("loginPassword").value;
+
+    if (checked) {
+        localStorage.setItem("remembered_id",  id);
+        localStorage.setItem("remembered_pwd", pwd);
+    } else {
+        localStorage.removeItem("remembered_id");
+        localStorage.removeItem("remembered_pwd");
+    }
+});
+// ===================================================
+
+
+// =================== PASSWORD TOGGLE ===================
+function togglePassword(inputId, eye) {
+    const input = document.getElementById(inputId);
+    if (input.type === "password") {
+        input.type       = "text";
+        eye.textContent  = "🙈";
+    } else {
+        input.type       = "password";
+        eye.textContent  = "👁️";
+    }
+}
+// =======================================================
+
+
+// =================== ROLE DETECTION ===================
+function detectRole() {
+    const id   = document.getElementById("loginId").value.toUpperCase();
+    const hint = document.getElementById("roleHint");
+
+    if (id.startsWith("DOC-")) {
+        hint.textContent = "👨‍⚕️ Doctor Account Detected";
+        hint.style.color = "#2c7be5";
+    } else if (id.startsWith("PAT-")) {
+        hint.textContent = "🧑‍🦽 Patient Account Detected";
+        hint.style.color = "#27ae60";
+    } else if (id.startsWith("HOS-")) {
+        hint.textContent = "🏥 Hospital Account Detected";
+        hint.style.color = "#8e44ad";
+    } else {
+        hint.textContent = "";
+    }
+}
+// ======================================================
+
+
+// =================== VALIDATE LOGIN ID ===================
+function validateLoginId() {
+    const id = document.getElementById("loginId").value.toUpperCase();
+    if (!id.startsWith("DOC-") &&
+        !id.startsWith("PAT-") &&
+        !id.startsWith("HOS-")) {
+        alert("⚠️ Login ID must start with DOC-, PAT-, or HOS-");
+        return false;
+    }
+    return true;
+}
+// =========================================================
+
+
+// =================== CAPS LOCK WARNING ===================
+function capsCheck(e) {
+    const warning = document.getElementById("capsWarning");
+    warning.style.display = e.getModifierState("CapsLock") ? "block" : "none";
+}
+// =========================================================
+
+
+// =================== AUTO-HIDE POPUP ===================
+setTimeout(() => {
+    const popup = document.getElementById("popup-msg");
+    if (popup) popup.parentElement.remove();
+}, 3000);
+// =======================================================
+</script>
+
+</body>
+</html>

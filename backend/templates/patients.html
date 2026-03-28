@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #2c7be5;
+            color: white;
+        }
+        tr:hover {
+            background: #f1f1f1;
+        }
+        .nav {
+            margin-bottom: 15px;
+        }
+        .nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #2c7be5;
+            font-weight: bold;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .pending {
+            color: orange;
+        }
+        .approved {
+            color: green;
+        }
+        .rejected {
+            color: red;
+        }
+        .btn {
+            padding: 10px 14px;
+            background: #2c7be5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        .card {
+            background: white;
+            padding: 18px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="/dashboard">⬅ Dashboard</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<h2>🧑‍🦽 Patient Dashboard</h2>
+
+<!-- ================= PREDICTION RESULT (READ ONLY) ================= -->
+<div class="card">
+    <h3>🧠 Latest Readmission Prediction</h3>
+    <table>
+        <tr>
+            <th>Risk Level</th>
+            <td>{{ risk or "Not Available" }}</td>
+        </tr>
+        <tr>
+            <th>Probability</th>
+            <td>{{ prob or "-" }}</td>
+        </tr>
+        <tr>
+            <th>Last Predicted On</th>
+            <td>{{ last_date or "-" }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ================= CARE PLAN ================= -->
+<div class="card">
+    <h3>📋 Care Plan</h3>
+    <p>{{ care_plan or "Care plan will be updated by doctor." }}</p>
+</div>
+
+<!-- ================= DISCHARGE STATUS ================= -->
+<div class="card">
+    <h3>🏥 Discharge Status</h3>
+    <p class="status {{ discharge_status|lower if discharge_status }}">
+        {{ discharge_status or "Not Requested" }}
+    </p>
+
+    <!-- REQUEST DISCHARGE BUTTON (ONLY ONCE) -->
+    {% if discharge_status == "Not Requested" %}
+    <form method="post" action="/request-discharge">
+        <button type="submit" class="btn">📨 Request Discharge</button>
+    </form>
+    {% else %}
+    <button class="btn" disabled>Request Already Submitted</button>
+    {% endif %}
+</div>
+
+</body>
+</html>

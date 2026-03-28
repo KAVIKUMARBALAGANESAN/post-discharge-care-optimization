@@ -1,0 +1,14 @@
+<h2>Prediction History</h2>
+<table border="1">
+<tr>
+  <th>Date</th><th>Risk</th><th>Probability</th>
+</tr>
+{% for r in records %}
+<tr>
+  <td>{{ r[-1] }}</td>
+  <td>{{ r[-2] }}</td>
+  <td>{{ r[-3] }}</td>
+</tr>
+{% endfor %}
+</table>
+<a href="/dashboard">Back</a>
