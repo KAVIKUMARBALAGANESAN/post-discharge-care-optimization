@@ -1,4 +1,5 @@
 import sqlite3
+from werkzeug.security import generate_password_hash
 
 DB_NAME = "database.db"
 
@@ -107,7 +108,6 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES users(unique_id)
     )""")
 
-    # ✅ NEW: Vital Signs
     cur.execute("""
     CREATE TABLE IF NOT EXISTS vital_signs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,7 +121,6 @@ def init_db():
         FOREIGN KEY (patient_id) REFERENCES users(unique_id)
     )""")
 
-    # ✅ NEW: Messages
     cur.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,7 +133,6 @@ def init_db():
         FOREIGN KEY (receiver_id) REFERENCES users(unique_id)
     )""")
 
-    # ✅ NEW: Feedback
     cur.execute("""
     CREATE TABLE IF NOT EXISTS feedback (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,7 +143,6 @@ def init_db():
         FOREIGN KEY (patient_id) REFERENCES users(unique_id)
     )""")
 
-    # ✅ NEW: Audit Log
     cur.execute("""
     CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,7 +152,6 @@ def init_db():
         logged_at DATETIME DEFAULT (datetime('now','+5 hours','+30 minutes'))
     )""")
 
-    # ✅ NEW: SOS Alerts
     cur.execute("""
     CREATE TABLE IF NOT EXISTS sos_alerts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -164,6 +160,15 @@ def init_db():
         triggered_at DATETIME DEFAULT (datetime('now','+5 hours','+30 minutes')),
         is_resolved INTEGER DEFAULT 0,
         FOREIGN KEY (patient_id) REFERENCES users(unique_id)
+    )""")
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS chat_history (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        message    TEXT NOT NULL,
+        response   TEXT NOT NULL,
+        timestamp  TEXT NOT NULL
     )""")
 
     # Safe column additions for existing databases
@@ -406,6 +411,103 @@ def get_all_patients():
     return data
 
 
+# ================= FORGOT PASSWORD FUNCTIONS =================
+
+def get_user_by_email(email):
+    """
+    Returns (unique_id, name) for the given email address.
+    Returns None if email is not found.
+    Used by forgot_password route in app.py
+    """
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT unique_id, name FROM users WHERE email = ?", (email,)
+    )
+    row = cur.fetchone()
+    db.close()
+    return row  # returns (uid, name) or None
+
+
+def update_user_password(unique_id, new_password):
+    """
+    Updates the password for the given user.
+    Uses werkzeug's generate_password_hash (same as auth.py) so that
+    login_user / check_password_hash can verify it correctly after a reset.
+    """
+    hashed = generate_password_hash(new_password)   # ← FIX: was hashlib.sha256
+    db  = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "UPDATE users SET password = ? WHERE unique_id = ?",
+        (hashed, unique_id)
+    )
+    db.commit()
+    db.close()
+    return True
+
+
+# ================= PROFILE FUNCTIONS =================
+
+def get_user_profile(unique_id):
+    """
+    Returns user profile as a dictionary.
+    Used by profile route in app.py
+    """
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT unique_id, name, email, role FROM users WHERE unique_id = ?",
+        (unique_id,)
+    )
+    row = cur.fetchone()
+    db.close()
+    if row:
+        return {
+            "unique_id": row[0],
+            "name":      row[1],
+            "email":     row[2],
+            "role":      row[3]
+        }
+    return None
+
+
+def update_user_profile(unique_id, name, email, password=None):
+    """
+    Updates user profile (name, email, and optionally password).
+    Returns True on success, False if email is already taken by another user.
+    Uses werkzeug's generate_password_hash (same as auth.py) so that
+    login_user / check_password_hash can verify it correctly after a profile update.
+    """
+    db  = get_db()
+    cur = db.cursor()
+
+    # Check if email is already used by another user
+    cur.execute(
+        "SELECT unique_id FROM users WHERE email = ? AND unique_id != ?",
+        (email, unique_id)
+    )
+    if cur.fetchone():
+        db.close()
+        return False  # Email already taken
+
+    if password:
+        hashed = generate_password_hash(password)   # ← FIX: was hashlib.sha256
+        cur.execute(
+            "UPDATE users SET name=?, email=?, password=? WHERE unique_id=?",
+            (name, email, hashed, unique_id)
+        )
+    else:
+        cur.execute(
+            "UPDATE users SET name=?, email=? WHERE unique_id=?",
+            (name, email, unique_id)
+        )
+
+    db.commit()
+    db.close()
+    return True
+
+
 # ================= SYMPTOMS =================
 def save_symptom(patient_id, fever, pain_level, breathing, notes):
     is_flagged = 1 if (fever == "Yes" or int(pain_level) >= 7
@@ -598,15 +700,14 @@ def get_analytics():
 # ================= VITAL SIGNS =================
 def save_vital_signs(patient_id, blood_pressure, heart_rate,
                      temperature, blood_sugar):
-    # Flag if any reading is abnormal
     is_abnormal = 0
     try:
-        hr = int(heart_rate)
+        hr   = int(heart_rate)
         temp = float(temperature)
-        bs = float(blood_sugar)
-        if hr < 50 or hr > 120: is_abnormal = 1
+        bs   = float(blood_sugar)
+        if hr < 50 or hr > 120:        is_abnormal = 1
         if temp > 38.5 or temp < 35.0: is_abnormal = 1
-        if bs > 200 or bs < 60: is_abnormal = 1
+        if bs > 200 or bs < 60:        is_abnormal = 1
     except Exception:
         pass
 
@@ -811,8 +912,21 @@ def get_patient_report(patient_id):
     vitals = cur.fetchall()
 
     db.close()
+
+    info_dict = {}
+    if patient_info:
+        info_dict = {
+            "unique_id": patient_info[0],
+            "name":      patient_info[1],
+            "email":     patient_info[2],
+            "role":      patient_info[3],
+        }
+
     return {
         "info":         patient_info,
+        "name":         info_dict.get("name", "—"),
+        "email":        info_dict.get("email", "—"),
+        "role":         info_dict.get("role", "—"),
         "predictions":  predictions,
         "discharges":   discharges,
         "medications":  medications,

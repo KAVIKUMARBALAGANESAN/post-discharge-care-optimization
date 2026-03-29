@@ -34,7 +34,7 @@ def register_user(name, email, password, role):
     db = get_db()
     cur = db.cursor()
 
-    # ✅ Check if email already exists
+    # Check if email already exists
     cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
     if cur.fetchone():
         db.close()
