@@ -1458,6 +1458,247 @@ def chatbot_api():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ★ NEW — PREDICTIVE PATIENT DETERIORATION HEATMAP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _compute_deterioration_score(risk, prob, trend, days_inactive,
+                                  has_fever, high_pain, abnormal_breathing,
+                                  vitals_abnormal):
+    """
+    Compute a 0–100 composite deterioration score for sorting / badge colour.
+
+    Weights:
+      - Risk probability      : up to 40 pts
+      - Trend direction       : ↑ +15, → +5, ↓ +0
+      - Inactivity            : >5 days +20, 3-5 days +10, 1-2 days +5
+      - Fever                 : +10
+      - High pain (>=7)       : +8
+      - Abnormal breathing    : +7
+      - Abnormal vitals       : +10  (capped at 100 total)
+    """
+    score = 0
+    score += min(prob * 40, 40)                          # probability component
+    score += {"↑": 15, "→": 5, "↓": 0}.get(trend, 5)   # trend
+    if days_inactive is not None:
+        if days_inactive > 5:   score += 20
+        elif days_inactive > 2: score += 10
+        elif days_inactive > 0: score += 5
+    else:
+        score += 20                                       # never submitted = worst case
+    if has_fever:            score += 10
+    if high_pain:            score += 8
+    if abnormal_breathing:   score += 7
+    if vitals_abnormal:      score += 10
+    return min(round(score, 1), 100)
+
+
+@app.route("/deterioration-heatmap")
+def deterioration_heatmap():
+    """
+    Predictive Patient Deterioration Heatmap.
+    Combines risk prediction, vitals, symptoms and inactivity into one
+    colour-coded card grid so doctors get a single-screen morning briefing.
+    """
+    if 'user' not in session or session['role'] not in ['doctor', 'hospital']:
+        flash("Unauthorized", "error")
+        return redirect('/dashboard')
+
+    patients     = get_all_patients()
+    all_symptoms = get_all_symptoms()
+    patient_data = []
+
+    # Build a quick symptom lookup: patient_id → latest symptom row
+    symptom_map = {}
+    for s in all_symptoms:
+        pid_sym = str(s[1])
+        if pid_sym not in symptom_map:
+            symptom_map[pid_sym] = s
+
+    for p in patients:
+        uid  = str(p[0])
+        name = p[1] if len(p) > 1 else uid
+
+        # ── latest prediction ──────────────────────────────────────────────
+        pred         = get_latest_prediction(uid)
+        risk         = pred[0] if pred else "Unknown"
+        prob         = pred[1] if pred else 0.0          # 0.0–1.0
+        prob_pct     = round(prob * 100, 1)
+
+        # ── prediction trend (compare latest two predictions) ──────────────
+        pred_history = get_patient_predictions(uid)
+        trend        = "→"
+        if len(pred_history) >= 2:
+            diff = float(pred_history[0][1]) - float(pred_history[1][1])
+            trend = "↑" if diff > 0.05 else ("↓" if diff < -0.05 else "→")
+
+        # ── vitals ─────────────────────────────────────────────────────────
+        vitals          = get_patient_vitals(uid)
+        days_inactive   = None
+        vitals_abnormal = False
+        last_vitals_str = "Never"
+
+        if vitals:
+            latest_v = vitals[0]
+            try:
+                last_dt         = datetime.strptime(str(latest_v[5])[:16], "%Y-%m-%d %H:%M")
+                days_inactive   = (datetime.now() - last_dt).days
+                last_vitals_str = last_dt.strftime("%d %b %Y, %H:%M")
+            except Exception:
+                pass
+            # flag abnormal vitals (HR >100 or <50, Temp >38 or <35.5, BS >200)
+            try:
+                hr   = float(latest_v[2])
+                temp = float(latest_v[3])
+                bs   = float(latest_v[4])
+                if hr > 100 or hr < 50 or temp > 38.0 or temp < 35.5 or bs > 200:
+                    vitals_abnormal = True
+            except (ValueError, TypeError):
+                pass
+
+        # ── latest symptoms ────────────────────────────────────────────────
+        sym               = symptom_map.get(uid)
+        has_fever         = False
+        high_pain         = False
+        abnormal_breathing= False
+
+        if sym:
+            has_fever          = str(sym[2]).lower() == "yes" if len(sym) > 2 else False
+            try:
+                high_pain      = int(sym[3]) >= 7 if len(sym) > 3 else False
+            except (ValueError, TypeError):
+                high_pain      = False
+            breathing_val      = str(sym[4]).strip() if len(sym) > 4 else "Normal"
+            abnormal_breathing = breathing_val not in ["Normal", "None", "", "No"]
+
+        # ── composite deterioration score ──────────────────────────────────
+        det_score = _compute_deterioration_score(
+            risk, prob, trend, days_inactive,
+            has_fever, high_pain, abnormal_breathing, vitals_abnormal
+        )
+
+        # ── alert badge: what is triggering concern ────────────────────────
+        alerts = []
+        if risk == "High":                                   alerts.append("🔴 High Risk")
+        if trend == "↑":                                     alerts.append("📈 Worsening Trend")
+        if days_inactive is None or days_inactive > 5:       alerts.append("💤 Inactive 5+ Days")
+        elif days_inactive > 2:                              alerts.append("💤 Inactive 3+ Days")
+        if has_fever:                                        alerts.append("🌡️ Fever")
+        if high_pain:                                        alerts.append("😣 High Pain")
+        if abnormal_breathing:                               alerts.append("🫁 Abnormal Breathing")
+        if vitals_abnormal:                                  alerts.append("⚠️ Abnormal Vitals")
+
+        patient_data.append({
+            "uid":               uid,
+            "name":              name,
+            "risk":              risk,
+            "prob":              prob_pct,
+            "trend":             trend,
+            "days_inactive":     days_inactive,
+            "last_vitals":       last_vitals_str,
+            "has_fever":         has_fever,
+            "high_pain":         high_pain,
+            "abnormal_breathing":abnormal_breathing,
+            "vitals_abnormal":   vitals_abnormal,
+            "det_score":         det_score,
+            "alerts":            alerts,
+        })
+
+    # Sort: highest deterioration score first
+    patient_data.sort(key=lambda x: -x["det_score"])
+
+    # Summary counts for the top stats bar
+    critical_count = sum(1 for p in patient_data if p["det_score"] >= 70)
+    warning_count  = sum(1 for p in patient_data if 40 <= p["det_score"] < 70)
+    stable_count   = sum(1 for p in patient_data if p["det_score"] < 40)
+    inactive_count = sum(1 for p in patient_data
+                         if p["days_inactive"] is None or p["days_inactive"] > 3)
+
+    log_action(session['user'], "VIEW_DETERIORATION_HEATMAP")
+    return render_template(
+        "deterioration_heatmap.html",
+        patients        = patient_data,
+        critical_count  = critical_count,
+        warning_count   = warning_count,
+        stable_count    = stable_count,
+        inactive_count  = inactive_count,
+        generated_at    = datetime.now().strftime("%d %b %Y, %H:%M"),
+    )
+
+
+@app.route("/heatmap-api")
+def heatmap_api():
+    """
+    JSON endpoint — called by the heatmap page every 60 s for live refresh
+    without a full page reload.
+    """
+    if 'user' not in session or session['role'] not in ['doctor', 'hospital']:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    patients     = get_all_patients()
+    all_symptoms = get_all_symptoms()
+    symptom_map  = {}
+    for s in all_symptoms:
+        pid_sym = str(s[1])
+        if pid_sym not in symptom_map:
+            symptom_map[pid_sym] = s
+
+    result = []
+    for p in patients:
+        uid          = str(p[0])
+        pred         = get_latest_prediction(uid)
+        risk         = pred[0] if pred else "Unknown"
+        prob         = pred[1] if pred else 0.0
+        pred_history = get_patient_predictions(uid)
+        trend        = "→"
+        if len(pred_history) >= 2:
+            diff  = float(pred_history[0][1]) - float(pred_history[1][1])
+            trend = "↑" if diff > 0.05 else ("↓" if diff < -0.05 else "→")
+
+        vitals          = get_patient_vitals(uid)
+        days_inactive   = None
+        vitals_abnormal = False
+        if vitals:
+            try:
+                last_dt       = datetime.strptime(str(vitals[0][5])[:16], "%Y-%m-%d %H:%M")
+                days_inactive = (datetime.now() - last_dt).days
+            except Exception:
+                pass
+            try:
+                hr   = float(vitals[0][2])
+                temp = float(vitals[0][3])
+                bs   = float(vitals[0][4])
+                if hr > 100 or hr < 50 or temp > 38.0 or temp < 35.5 or bs > 200:
+                    vitals_abnormal = True
+            except (ValueError, TypeError):
+                pass
+
+        sym                = symptom_map.get(uid)
+        has_fever          = str(sym[2]).lower() == "yes" if sym and len(sym) > 2 else False
+        try:
+            high_pain      = int(sym[3]) >= 7 if sym and len(sym) > 3 else False
+        except (ValueError, TypeError):
+            high_pain      = False
+        breathing_val      = str(sym[4]).strip() if sym and len(sym) > 4 else "Normal"
+        abnormal_breathing = breathing_val not in ["Normal", "None", "", "No"]
+
+        det_score = _compute_deterioration_score(
+            risk, prob, trend, days_inactive,
+            has_fever, high_pain, abnormal_breathing, vitals_abnormal
+        )
+        result.append({
+            "uid":       uid,
+            "name":      p[1] if len(p) > 1 else uid,
+            "risk":      risk,
+            "prob":      round(prob * 100, 1),
+            "trend":     trend,
+            "det_score": det_score,
+        })
+
+    result.sort(key=lambda x: -x["det_score"])
+    return jsonify(result)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # LOGOUT
 # ═══════════════════════════════════════════════════════════════════════════════
 
